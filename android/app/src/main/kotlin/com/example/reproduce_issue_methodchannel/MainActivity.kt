@@ -1,16 +1,23 @@
 package com.example.reproduce_issue_methodchannel
 
-import androidx.annotation.NonNull
-import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
+import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Point
 import android.os.BatteryManager
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
+import android.util.DisplayMetrics
+import android.view.Display
+import androidx.annotation.NonNull
+import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
+import kotlin.math.pow
+import kotlin.math.sqrt
+
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "samples.flutter.dev/battery"
@@ -28,6 +35,8 @@ class MainActivity: FlutterActivity() {
                 } else {
                     result.error("UNAVAILABLE", "Battery level not available.", null)
                 }
+            } else if (call.method == "getDeviceScreenSizeInInch")  {
+                result.success(getDeviceScreenSizeInInch(this@MainActivity))
             } else {
                 result.notImplemented()
             }
@@ -45,5 +54,39 @@ class MainActivity: FlutterActivity() {
         }
 
         return batteryLevel
+    }
+
+    private fun getDeviceScreenSizeInInch(activity: Activity): Double {
+        val windowManager = activity.windowManager
+        val display = windowManager.defaultDisplay
+        val displayMetrics = DisplayMetrics()
+        display.getMetrics(displayMetrics)
+
+        var mWidthPixels = displayMetrics.widthPixels
+        var mHeightPixels = displayMetrics.heightPixels
+
+        if (VERSION.SDK_INT in 14..16) {
+            try {
+                mWidthPixels = Display::class.java.getMethod("getRawWidth").invoke(display) as Int
+                mHeightPixels = Display::class.java.getMethod("getRawHeight").invoke(display) as Int
+            } catch (ignored: Exception) {
+            }
+        }
+
+        if (VERSION.SDK_INT >= 17) {
+            try {
+                val realSize = Point()
+                Display::class.java.getMethod("getRealSize", Point::class.java)
+                    .invoke(display, realSize)
+                mWidthPixels = realSize.x
+                mHeightPixels = realSize.y
+            } catch (ignored: Exception) {
+            }
+        }
+        val dm = DisplayMetrics()
+        activity.windowManager.defaultDisplay.getMetrics(dm)
+        val x = (mWidthPixels / dm.xdpi).toDouble().pow(2.0)
+        val y = (mHeightPixels / dm.ydpi).toDouble().pow(2.0)
+        return sqrt(x + y)
     }
 }

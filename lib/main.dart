@@ -16,6 +16,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   static const platform = MethodChannel('samples.flutter.dev/battery');
   String _batteryLevel = 'Unknown battery level.';
+  String _screenSizeInch = '0';
 
   Future<void> _getBatteryLevel() async {
     String batteryLevel;
@@ -28,6 +29,20 @@ class _MyAppState extends State<MyApp> {
 
     setState(() {
       _batteryLevel = batteryLevel;
+    });
+  }
+
+  Future<void> _getDeviceScreenSizeInInch() async {
+    String batteryLevel;
+    try {
+      final result = await platform.invokeMethod('getDeviceScreenSizeInInch');
+      batteryLevel = '$result inch';
+    } on PlatformException catch (e) {
+      batteryLevel = "Failed to get screen size in inch: '${e.message}'.";
+    }
+
+    setState(() {
+      _screenSizeInch = batteryLevel;
     });
   }
 
@@ -48,12 +63,13 @@ class _MyAppState extends State<MyApp> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Text(_batteryLevel),
+              Text(_screenSizeInch),
+              const SizedBox(height: 40.0),
+              ElevatedButton(onPressed: _getBatteryLevel, child: Text('Get battery')),
+              ElevatedButton(
+                  onPressed: _getDeviceScreenSizeInInch, child: Text('Get device screen inch')),
             ],
           ),
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _getBatteryLevel,
-          child: const Icon(Icons.battery_charging_full),
         ),
       ),
     );
