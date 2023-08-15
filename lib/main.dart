@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -14,36 +15,27 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  static const platform = MethodChannel('samples.flutter.dev/battery');
+  static const platform = MethodChannel('samples.flutter.dev/channel');
   String _batteryLevel = 'Unknown battery level.';
-  String _screenSizeInch = '0';
+  String _screenSizeInch = 'Unknown device screen inch.';
+  int _counter = 0;
 
-  Future<void> _getBatteryLevel() async {
-    String batteryLevel;
-    try {
-      final int result = await platform.invokeMethod('getBatteryLevel');
-      batteryLevel = 'Battery level at $result % .';
-    } on PlatformException catch (e) {
-      batteryLevel = "Failed to get battery level: '${e.message}'.";
-    }
-
-    setState(() {
-      _batteryLevel = batteryLevel;
-    });
-  }
-
-  Future<void> _getDeviceScreenSizeInInch() async {
-    String batteryLevel;
-    try {
-      final result = await platform.invokeMethod('getDeviceScreenSizeInInch');
-      batteryLevel = '$result inch';
-    } on PlatformException catch (e) {
-      batteryLevel = "Failed to get screen size in inch: '${e.message}'.";
-    }
-
-    setState(() {
-      _screenSizeInch = batteryLevel;
-    });
+  @override
+  void initState() {
+    platform.setMethodCallHandler(
+      (call) async {
+        print('call.method: ${call.method} - call.arguments: ${call.arguments}');
+        switch (call.method) {
+          case "triggerNativeCallbackFlutter":
+            {
+              setState(() {
+                _counter = call.arguments as int;
+              });
+            }
+        }
+      },
+    );
+    super.initState();
   }
 
   @override
@@ -64,14 +56,59 @@ class _MyAppState extends State<MyApp> {
             children: <Widget>[
               Text(_batteryLevel),
               Text(_screenSizeInch),
+              Text('Counter: $_counter'),
               const SizedBox(height: 40.0),
-              ElevatedButton(onPressed: _getBatteryLevel, child: Text('Get battery')),
               ElevatedButton(
-                  onPressed: _getDeviceScreenSizeInInch, child: Text('Get device screen inch')),
+                onPressed: _getBatteryLevel,
+                child: const Text('Get battery'),
+              ),
+              ElevatedButton(
+                onPressed: _getDeviceScreenSizeInInch,
+                child: const Text('Get device screen inch'),
+              ),
+              ElevatedButton(
+                onPressed: _triggerNativeCallbackFlutter,
+                child: const Text('Trigger native call back to Flutter'),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _getBatteryLevel() async {
+    String batteryLevel;
+    try {
+      final int result = await platform.invokeMethod('getBatteryLevel');
+      batteryLevel = 'Battery level at $result % .';
+    } on PlatformException catch (e) {
+      batteryLevel = "Failed to get battery level: '${e.message}'.";
+    }
+    setState(() {
+      _batteryLevel = batteryLevel;
+    });
+  }
+
+  Future<void> _getDeviceScreenSizeInInch() async {
+    String batteryLevel;
+    try {
+      final result = await platform.invokeMethod('getDeviceScreenSizeInInch');
+      batteryLevel = '$result inch';
+    } on PlatformException catch (e) {
+      batteryLevel = "Failed to get screen size in inch: '${e.message}'.";
+    }
+    setState(() {
+      _screenSizeInch = batteryLevel;
+    });
+  }
+
+  Future<void> _triggerNativeCallbackFlutter() async {
+    try {
+      await platform.invokeMethod('triggerNativeCallbackFlutter');
+    } on PlatformException catch (e) {
+      print("Failed to trigger native call back: '${e.message}'.");
+    }
+    print('ok');
   }
 }

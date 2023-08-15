@@ -10,8 +10,8 @@ import android.os.BatteryManager
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.Display
-import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -20,16 +20,17 @@ import kotlin.math.sqrt
 
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "samples.flutter.dev/battery"
+    private val CHANNEL = "samples.flutter.dev/channel"
+    lateinit var channel: MethodChannel
 
-    override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler {
+        channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        channel.setMethodCallHandler {
             // This method is invoked on the main thread.
                 call, result ->
             if (call.method == "getBatteryLevel") {
                 val batteryLevel = getBatteryLevel()
-
                 if (batteryLevel != -1) {
                     result.success(batteryLevel)
                 } else {
@@ -37,6 +38,8 @@ class MainActivity: FlutterActivity() {
                 }
             } else if (call.method == "getDeviceScreenSizeInInch")  {
                 result.success(getDeviceScreenSizeInInch(this@MainActivity))
+            } else if (call.method == "triggerNativeCallbackFlutter")  {
+                triggerNativeCallbackFlutter()
             } else {
                 result.notImplemented()
             }
@@ -88,5 +91,19 @@ class MainActivity: FlutterActivity() {
         val x = (mWidthPixels / dm.xdpi).toDouble().pow(2.0)
         val y = (mHeightPixels / dm.ydpi).toDouble().pow(2.0)
         return sqrt(x + y)
+    }
+
+    private fun triggerNativeCallbackFlutter() {
+        channel.invokeMethod("triggerNativeCallbackFlutter", 100, object : MethodChannel.Result {
+            override fun success(o: Any?) {
+                Log.d("Results", "triggerNativeCallbackFlutter success")
+            }
+            override fun error(s: String, s1: String?, o: Any?) {
+                Log.d("Results", "triggerNativeCallbackFlutter error")
+            }
+            override fun notImplemented() {
+                Log.d("Results", "triggerNativeCallbackFlutter notImplemented")
+            }
+        })
     }
 }
